@@ -42,4 +42,112 @@ export default function App() {
       }
     })();
     return () => {
-      cancelled = tr
+      cancelled = true;
+    };
+  }, [apiKey, apiURL]);
+
+  const sortedMovies = useMemo(() => {
+    const m = [...movies];
+    switch (sortBy) {
+      case "release_desc":
+        m.sort((a, b) => new Date(b.release_date || 0) - new Date(a.release_date || 0));
+        break;
+      case "release_asc":
+        m.sort((a, b) => new Date(a.release_date || 0) - new Date(b.release_date || 0));
+        break;
+      case "rating_desc":
+        m.sort((a, b) => (b.vote_average ?? 0) - (a.vote_average ?? 0));
+        break;
+      case "rating_asc":
+        m.sort((a, b) => (a.vote_average ?? 0) - (b.vote_average ?? 0));
+        break;
+      default:
+        break;
+    }
+    return m;
+  }, [movies, sortBy]);
+
+  const handleSearch = () => {
+    setQuery(pendingInput.trim());
+    setCurrentPage(1);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") handleSearch();
+  };
+
+  const goPrev = () => setCurrentPage((p) => Math.max(1, p - 1));
+  const goNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
+
+  return (
+    <div>
+      <header>
+        <h1>Movie Explorer</h1>
+      </header>
+
+      <div className="search-bar">
+        <input
+          type="text"
+          placeholder="Search for a movie..."
+          value={pendingInput}
+          onChange={(e) => setPendingInput(e.target.value)}
+          onKeyDown={handleKeyPress}
+          id="search-input"
+        />
+        <button id="search-btn" onClick={handleSearch}>
+          Search
+        </button>
+
+        <select
+          id="sort-select"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+        >
+          <option value="">Sort By</option>
+          <option value="release_desc">Release Date (Newest → Oldest)</option>
+          <option value="release_asc">Release Date (Oldest → Newest)</option>
+          <option value="rating_desc">Rating (Highest → Lowest)</option>
+          <option value="rating_asc">Rating (Lowest → Highest)</option>
+        </select>
+      </div>
+
+      <div className="box-container" id="movies-container">
+        {sortedMovies.length === 0 ? (
+          <p style={{ textAlign: "center", fontWeight: "bold", width: "100%" }}>
+            No results found.
+          </p>
+        ) : (
+          sortedMovies.map((movie) => {
+            const poster = movie.poster_path
+              ? `${TMDB_IMG}${movie.poster_path}`
+              : "https://via.placeholder.com/500x750?text=No+Image";
+            return (
+              <div className="box" key={`${movie.id}-${poster}`}>
+                <img src={poster} alt={movie.title} />
+                <p>
+                  <strong>{movie.title}</strong>
+                </p>
+                <p>
+                  Rating {movie.vote_average?.toFixed?.(1) ?? "N/A"} | Release date{" "}
+                  {movie.release_date || "N/A"}
+                </p>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="pagination" id="pagination">
+        <button id="prev-btn" onClick={goPrev} disabled={currentPage <= 1}>
+          ⬅ Prev
+        </button>
+        <span id="page-info">
+          Page {totalPages ? currentPage : 0} {totalPages ? `of ${totalPages}` : ""}
+        </span>
+        <button id="next-btn" onClick={goNext} disabled={currentPage >= totalPages}>
+          Next ➡
+        </button>
+      </div>
+    </div>
+  );
+}
